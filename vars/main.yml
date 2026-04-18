@@ -1,0 +1,47 @@
+---
+###############################################################################
+# youtube-dl Dependencies
+###############################################################################
+# Default required packages for youtube-dl.
+
+youtube_dl_default_packages:
+  - 'python3'
+  - 'python3-pip'
+  - 'python3-virtualenv'
+  - 'python-is-python3' # youtube-dl requires '/usr/bin/python' (python3).
+
+youtube_dl_default_youtube_dl_packages:
+  - 'lame'
+  - 'ffmpeg'
+
+youtube_dl_default_yt_bin: '/usr/local/bin/youtube-dl'
+
+###############################################################################
+# Default youtube-dl User Group
+###############################################################################
+# Default group settings if an youtube-dl user is force created.
+
+youtube_dl_default_group:
+  name: 'youtube_dl'
+  gid:  946
+
+###############################################################################
+# Default youtube-dl User Account
+###############################################################################
+# Default user settings if an youtube-dl user is force created.
+#
+# Logins are disabled.
+
+youtube_dl_default_user:
+  name:            'youtube_dl'
+  group:           'youtube_dl'
+  uid:             946
+  shell:           '/bin/bash'
+  home:            '/etc/youtube_dl'
+  comment:         'youtube-dl system account,,,'
+  create_home:     true
+  password:        '!'
+  password_lock:   true
+  update_password: 'always'
+  expires:         -1
+  system:          true

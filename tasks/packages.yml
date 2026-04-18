@@ -1,0 +1,29 @@
+---
+###############################################################################
+# Youtube-DL Packages
+###############################################################################
+# Install packages.
+
+- name: 'packages | add packages (may take a while)'
+  ansible.builtin.debug:
+    msg: |
+      Packages are being installed. This will take a few minutes.
+
+- name: 'packages | install dependencies'
+  ansible.builtin.apt:
+    name: '{{ item }}'
+    update_cache: true
+    state: 'latest'
+  loop:
+    - '{{ youtube_dl_default_packages }}'
+    - '{{ youtube_dl_default_youtube_dl_packages }}'
+
+- name: 'packages | download latest youtube-dl binary'
+  ansible.builtin.get_url:
+    url:   'https://yt-dl.org/downloads/latest/youtube-dl'
+    dest:  '{{ youtube_dl_default_yt_bin }}'
+    owner: 'root'
+    group: 'root'
+    mode:  0755
+    force: true
+    checksum: 'sha512:https://yt-dl.org/downloads/latest/SHA2-512SUMS'

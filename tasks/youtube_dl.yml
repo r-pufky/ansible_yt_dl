@@ -1,0 +1,41 @@
+---
+###############################################################################
+# Youtube-DL Configuration.
+###############################################################################
+# Setup youtube-dl to download user channels.
+#
+# Args:
+#   _youtube_dl_user_home: str detected youtube_dl_user home directory.
+
+- name: 'youtube-dl | set download wrapper'
+  ansible.builtin.template:
+    src:   'youtube_dl/yt-dl.j2'
+    dest:  '{{ _youtube_dl_user_home }}/yt-dl'
+    owner: '{{ youtube_dl_user }}'
+    group: '{{ youtube_dl_group }}'
+    mode:  0500
+
+- name: 'youtube-dl | set users to sync'
+  ansible.builtin.template:
+    src:   'youtube_dl/yt-dl.sync.j2'
+    dest:  '{{ _youtube_dl_user_home }}/yt-dl.sync'
+    owner: '{{ youtube_dl_user }}'
+    group: '{{ youtube_dl_group }}'
+    mode:  0400
+
+- name: 'youtube-dl | set download destination permissions'
+  ansible.builtin.file:
+    dest:  '{{ youtube_dl_download_dest }}'
+    owner: '{{ youtube_dl_user }}'
+    group: '{{ youtube_dl_group }}'
+    recurse: true
+    state: 'directory'
+
+- name: 'youtube-dl | set cron sync'
+  ansible.builtin.cron:
+    name:         'youtube-dl cron'
+    special_time: '{{ youtube_dl_period }}'
+    user:         '{{ youtube_dl_user }}'
+    job:          '{{ _youtube_dl_user_home }}/yt-dl -c {{ _youtube_dl_user_home }}/yt-dl.sync -d {{ youtube_dl_download_dest }} -p -v -q &>/dev/null'
+    cron_file:    'youtube_dl_youtube_dl_cron'
+    state:        'present'

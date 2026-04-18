@@ -1,0 +1,151 @@
+#!/bin/bash
+# Sync known playlists and videos for youtube user(s).
+BASE='.'
+F_FORCE=0
+F_PLAYLISTS=0
+F_VIDEOS=0
+F_QUIET=0
+Y_DL='{{ youtube_dl_default_yt_bin }}'
+Y_BASE='https://www.youtube.com/user/'
+Y_OPT_QUIET=''
+Y_OPT_DOWN='--no-overwrites --continue --ignore-errors'
+Y_OPT_FORMAT='--format best --merge-output-format mkv'
+Y_OPT_WRITE='--write-thumbnail --write-description --write-info-json --write-annotations'
+Y_OPT_TEMPLATE='{{ youtube_dl_format }}'
+
+USAGE="
+Download an entire youtube channel, including all playlists.
+
+Playlists are downloaded first to associate posted videos with a playlist,
+All remaining channel videos are then downloaded, using state to prevent
+duplicate downloads. Output directory will be created if it does not exist.
+
+Usage: $0 [OPTIONS]
+
+Options:
+  -c [FILE] Configuration file containing usernames, one per line.
+            disables -u, enables -f.
+  -d [DIR]  Target base download directory. Default: .
+  -f        Force run without confirmation prompt.
+  -u [USER] Youtube user account. Required if not using -c.
+  -p        Download all playlists. Ordered before videos.
+  -q        Quiet. Supress output except errors/prompts.
+  -v        Download all videos. Ordered after playlists.
+
+Examples:
+  $0 -u seowhistleblower -d /vids/youtube -p -v
+
+    Downloads 'seowhistleblower' channel to /vids/youtube/seowhistleblower
+
+  $0 -u seowhistleblower -d /vids/youtube -p -f
+
+    Downloads 'seowhistleblower' playlists to /vids/youtube/seowhistleblower
+    without continue prompt.
+
+  $0 -c userlist -d /vids/youtube -p -f
+
+    Downloads all user playlists to /vids/youtube/{USER} without continue
+    prompt.
+"
+
+while getopts "c:u:d:hfpqv" options; do
+  case "${options}" in
+    c)
+      CONFIG=${OPTARG}
+      ;;
+    d)
+      BASE=${OPTARG%%/}
+      ;;
+    f)
+      F_FORCE=1
+      ;;
+    u)
+      USERNAME=${OPTARG}
+      ;;
+    h)
+      echo "${USAGE}"
+      exit 1
+      ;;
+    p)
+      F_PLAYLISTS=1
+      ;;
+    q)
+      F_QUIET=1
+      ;;
+    v)
+      F_VIDEOS=1
+      ;;
+    :)
+      echo "Error: -${OPTARG} requires an argument."
+      exit 1
+      ;;
+  esac
+done
+
+if [ -z ${USERNAME} ] && [ -z ${CONFIG} ]; then
+  echo 'Error: Username or userlist must be specified.'
+  exit 2
+fi
+
+if ! [ -f ${CONFIG} ]; then
+  echo "Error: ${CONFIG} does not exist. Aborting."
+  exit 5
+fi
+
+if ! [ -x ${Y_DL} ]; then
+  echo "Error: ${Y_DL} does not exist or is not executable. Aborting."
+  exit 3
+fi
+
+if [ ${F_QUIET} -eq 1 ]; then
+  Y_OPT_QUIET='--quiet'
+fi
+
+function confirm() {
+  if [ ${F_FORCE} -ne 1 ] && [ -z ${CONFIG} ]; then
+    echo "Download configuration:
+
+  Youtube User:       ${URL_VIDEOS}
+  Youtube Playlists:  ${URL_PLAYLISTS}
+  Save to:            ${TARGET}
+  Download Playlists: ${F_PLAYLISTS}
+  Download Videos:    ${F_VIDEOS}"
+
+    read -n 1 -p "Press Y to continue, any other key to abort: " READ_CONTINUE
+
+    if [ "${READ_CONTINUE}" != 'Y' ]; then
+      echo -e '\n\nAborting.'
+      exit 3
+    fi
+  fi
+}
+
+function download() {
+  user=$1
+
+  TARGET="${BASE}/${user}"
+  URL_VIDEOS="${Y_BASE}${user}"
+  URL_PLAYLISTS="${Y_BASE}${user}/playlists"
+
+  Y_OPT_STATE="--download-archive ${TARGET}/youtube-dl.state"
+  Y_OPT_OUTPUT="--output ${TARGET}/${Y_OPT_TEMPLATE}"
+  confirm
+
+  mkdir -p ${TARGET} 2> /dev/null
+
+  if [ ${F_PLAYLISTS} -eq 1 ]; then
+    ${Y_DL} ${Y_OPT_QUIET} ${Y_OPT_DOWN} ${Y_OPT_FORMAT} ${Y_OPT_WRITE} ${Y_OPT_STATE} ${Y_OPT_OUTPUT} ${URL_PLAYLISTS}
+  fi
+
+  if [ ${F_VIDEOS} -eq 1 ]; then
+    ${Y_DL} ${Y_OPT_QUIET} ${Y_OPT_DOWN} ${Y_OPT_FORMAT} ${Y_OPT_WRITE} ${Y_OPT_STATE} ${Y_OPT_OUTPUT} ${URL_VIDEOS}
+  fi
+}
+
+if [ ${CONFIG} ]; then
+  while IFS= read -r user; do
+    download ${user}
+  done < ${CONFIG}
+else
+  download ${USERNAME}
+fi

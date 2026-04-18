@@ -1,0 +1,35 @@
+---
+###############################################################################
+# Youtube-DL Role Configuration
+###############################################################################
+
+# User that youtube-dl will run under. Assumes externally managed.
+youtube_dl_user:  'youtube_dl'
+youtube_dl_group: 'youtube_dl'
+
+# Create 'youtube-dl' user if not detected? See: vars/main.yml.
+youtube_dl_create_user: false
+
+# Full path to virtualenv setup location.
+youtube_dl_venv_dir: '/opt/venvs/youtube_dl'
+
+###############################################################################
+# Youtube-DL Configuration
+###############################################################################
+# Sync entire user channels to disk.
+#
+# Reference:
+# * https://youtube-dl.org/
+# * https://github.com/ytdl-org/youtube-dl/blob/master/README.md#readme
+
+# youtube-dl downloaded file format template, per youtube-dl.
+youtube_dl_format: '%(uploader_id)s/%(playlist)s/%(playlist_index)s_%(title)s/%(playlist_index)s-%(title)s.%(ext)s'
+
+# youtube-dl sync interval (per ansible cron special_time).
+youtube_dl_period: 'weekly'
+
+# Full path to root download destination.
+youtube_dl_download_dest: '/data/youtube'
+
+# List of user names to sync in full.
+youtube_dl_users: []

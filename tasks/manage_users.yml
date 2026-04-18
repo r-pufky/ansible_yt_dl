@@ -1,0 +1,64 @@
+---
+###############################################################################
+# Manager Youtube-DL Users
+###############################################################################
+# Check if user exists and create if enabled.
+#
+# Args:
+#   youtube_dl_user: string youtube-dl username.
+#   youtube_dl_group: string youtube-dl group.
+#   youtube_dl_create_user: boolean true to create role default user.
+#   youtube_dl_default_user: dict builitin.user options for youtube-dl.
+#   youtube_dl_default_group: dict builitin.group options for youtube-dl.
+#
+# Generates:
+#   _youtube_dl_user_home: str detected youtube_dl_user home directory.
+
+- name: 'manage users | confirm user exists'
+  ansible.builtin.command: 'id {{ youtube_dl_user }}'
+  register: _youtube_dl_user_exists
+  changed_when: _youtube_dl_user_exists.rc > 0
+  failed_when: false
+
+- name: 'manage users | confirm group exists'
+  ansible.builtin.command: 'groups {{ youtube_dl_group }}'
+  register: _youtube_dl_group_exists
+  changed_when: _youtube_dl_group_exists.rc > 0
+  failed_when: false
+
+- name: 'manage users | create youtube-dl group'
+  ansible.builtin.group:
+    name:  '{{ youtube_dl_default_group.name }}'
+    gid:   '{{ youtube_dl_default_group.gid }}'
+    state: 'present'
+  when: youtube_dl_create_user and _youtube_dl_group_exists.rc != 0
+
+- name: 'manage users | create youtube-dl user (logins disabled)'
+  ansible.builtin.user:
+    name:            '{{ youtube_dl_default_user.name }}'
+    group:           '{{ youtube_dl_default_user.group }}'
+    uid:             '{{ youtube_dl_default_user.uid }}'
+    shell:           '{{ youtube_dl_default_user.shell }}'
+    home:            '{{ youtube_dl_default_user.home }}'
+    comment:         '{{ youtube_dl_default_user.comment }}'
+    create_home:     '{{ youtube_dl_default_user.create_home }}'
+    password:        '{{ youtube_dl_default_user.password }}'
+    password_lock:   '{{ youtube_dl_default_user.password_lock }}'
+    update_password: '{{ youtube_dl_default_user.update_password }}'
+    expires:         '{{ youtube_dl_default_user.expires }}'
+    system:          '{{ youtube_dl_default_user.system }}'
+    state:           'present'
+  when: youtube_dl_create_user and _youtube_dl_user_exists.rc != 0
+
+- name: 'manage users | detect {{ youtube_dl_user }} home directory' # noqa no-changed-when always execute
+  ansible.builtin.command: 'echo ~{{ youtube_dl_user }}'
+  register: _youtube_dl_user_home_command
+
+- name: 'manage users | save home location'
+  ansible.builtin.set_fact:
+    _youtube_dl_user_home: '{{ _youtube_dl_user_home_command.stdout }}'
+
+- name: 'manage users | lockdown {{ youtube_dl_user }} home directory'
+  ansible.builtin.command: 'chmod -R go-rwx {{ _youtube_dl_user_home }}'
+  changed_when: false
+
